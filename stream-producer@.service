@@ -1,0 +1,18 @@
+[Unit]
+Description=24/7 stream producer for %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=247-stream
+Group=247-stream
+DeviceAllow=/dev/dri/renderD128 rw
+SupplementaryGroups=render
+EnvironmentFile=/etc/default/stream-producer
+ExecStart=/usr/local/bin/stream-producer %i
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

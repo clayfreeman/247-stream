@@ -1,0 +1,16 @@
+###
+# General settings.
+#
+# These settings define the format of the source and output streams.
+###
+
+SRC_FORMAT=srt://localhost:1337?streamid=play/%s
+DST_FORMAT=rtmp://ingest.global-contribute.live-video.net/live/%s
+
+###
+# Stream key path.
+#
+# Defines the format for the file path that contains a user's stream key.
+###
+
+KEY_FILE_FORMAT=/etc/247-stream/keys/%s

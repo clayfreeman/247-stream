@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+
+KEY_FILE=$(printf "$KEY_FILE_FORMAT" "$1")
+KEY=$(cat "$KEY_FILE")
+
+SRC=$(printf "$SRC_FORMAT" "$1")
+DST=$(printf "$DST_FORMAT" $KEY)
+
+INPUT=(
+  -i "$SRC"
+)
+
+OUTPUT=(
+  -c copy
+  -f flv
+  "$DST"
+)
+
+ffmpeg -hide_banner -loglevel error -nostdin "${INPUT[@]}" "${OUTPUT[@]}"

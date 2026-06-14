@@ -1,0 +1,108 @@
+#!/bin/bash
+set -euo pipefail
+
+SRC=$(printf "$SRC_FORMAT" "$1")
+DST=$(printf "$DST_FORMAT" "$1")
+
+INPUT=(
+  -hwaccel vaapi
+  -hwaccel_device "$DEVICE"
+  -hwaccel_output_format vaapi
+)
+
+VIDEO_ENC=(
+  -map 0:v:0
+  -vf "setsar=1,scale_vaapi=w=$WIDTH:h=$HEIGHT,fps=$FRAMERATE"
+  -c:v h264_vaapi -profile:v $PROFILE -level $LEVEL
+  -b:v $VIDEO_BITRATE -maxrate $VIDEO_BITRATE -minrate $VIDEO_BITRATE
+  -g $(( $FRAMERATE * $KEYFRAME_INTERVAL )) -bf $BFRAMES
+)
+
+AUDIO_ENC=(
+  -map 0:a:0
+  -c:a aac -b:a $AUDIO_BITRATE -ac $CHANNELS -ar $SAMPLERATE
+)
+
+OUTPUT=(
+  -shortest
+  "${VIDEO_ENC[@]}"
+  "${AUDIO_ENC[@]}"
+  -f mpegts
+)
+
+###
+# Helper function to copy standard input to the specified destination.
+###
+stream() {
+  ffmpeg -hide_banner -loglevel error -nostdin -re -i - -c copy -f mpegts "$DST"
+}
+
+###
+# Picks a random MP4 file in the last 6 months.
+#
+# The first argument is a source directory.
+# The second argument is an optional value representing the previous file.
+#
+# If the second argument is supplied, it will not be picked again.
+###
+pick_file() {
+  local SOURCE="$1"
+  local LAST="${2-}"
+
+  local -a CANDIDATES=()
+  local -a FILES=()
+
+  mapfile -d '' FILES < <(find -H "$SOURCE" \
+    -type f \
+    -name '*.mp4' \
+    -mtime -180 \
+    -print0)
+
+  local FILE
+
+  for FILE in "${FILES[@]}"
+  do
+    if [[ "$FILE" != "$LAST" ]]
+    then
+      CANDIDATES+=("$FILE")
+    fi
+  done
+
+  if [ ${#FILES[@]} -gt 0 ]
+  then
+    if [ ${#CANDIDATES[@]} -eq 0 ]
+    then
+      CANDIDATES=("${FILES[@]}")
+    fi
+
+    local LIMIT=$(( ${#CANDIDATES[@]} - 1 ))
+    local INDEX=$(shuf --input-range=0-"$LIMIT" --head-count=1)
+
+    printf '%s' "${CANDIDATES[$INDEX]}"
+
+    return 0
+  fi
+
+  return 1
+}
+
+###
+# The following snippet will continuously stream random MP4 files.
+#
+# Each MP4 file will be transcoded according to the configured encoder settings,
+# then piped to the configured destination.
+###
+while FILE=$(pick_file "$SRC" "${FILE-}")
+do
+  for DROPIN in /etc/247-stream/hooks.d/*
+  do
+    if [ -f "$DROPIN" ] && [ -x "$DROPIN" ]
+    then
+      setsid --fork "$DROPIN" "$1" "$FILE"
+    fi
+  done
+
+  ffmpeg -hide_banner -loglevel error -nostdin \
+    "${INPUT[@]}" -i "$FILE" \
+    "${OUTPUT[@]}" - 2>/dev/null
+done | stream

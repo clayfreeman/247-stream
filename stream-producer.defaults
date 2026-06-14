@@ -1,0 +1,31 @@
+###
+# General settings.
+#
+# These settings define the format of the source directory path and output
+# destination for ffmpeg.
+###
+
+SRC_FORMAT=/data/%s
+DST_FORMAT=srt://localhost:1337?streamid=publish/%s
+
+###
+# Video encoding settings.
+###
+
+DEVICE=/dev/dri/renderD128
+WIDTH=1920
+HEIGHT=1080
+FRAMERATE=60
+PROFILE=high
+LEVEL=4.2
+VIDEO_BITRATE=6M
+KEYFRAME_INTERVAL=2
+BFRAMES=2
+
+###
+# Audio encoding settings.
+###
+
+AUDIO_BITRATE=160K
+CHANNELS=2
+SAMPLERATE=48000
