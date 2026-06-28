@@ -68,6 +68,9 @@ DATE=$(date -d "$DATE UTC" +"$FORMAT")
 
 export MESSAGE="Now playing: ${TITLE} (originally aired ${DATE})"
 
+# Wait 10 seconds before sending the message.
+sleep 10
+
 # Send a chat message.
 DATA=$(jq -cner '{
   "broadcaster_id": env.BROADCASTER_ID,
